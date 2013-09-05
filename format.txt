@@ -1,0 +1,8 @@
+
+One file (threads.csv) comprises information on the individual threads sampled
+
+    thread-id, subreddit, title, url
+
+In the 'content' subdirectory, we pull the html from the url (above) and name this "content/<thread-id>.html"
+
+Another file (comments.csv) 
