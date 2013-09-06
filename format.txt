@@ -3,7 +3,7 @@ One file (threads.csv) comprises information on the individual threads sampled
 
     thread_id, subreddit, title, url
 
-In the 'content' subdirectory, we pull the html from the url (above) and name this "content/<thread-id>.html"
+In the 'content' subdirectory, we pull the html from the url (above) and name this "content/<thread-id>.html"; we also pull a stripped version ("content/<thread-id>.txt").
 
 Another file (comments.csv) contains:
 
@@ -13,4 +13,9 @@ And, finally, the users file (users.csv) contains previous posts by users
 
     user, comment, url, subreddit
 
-For 
+Specifically, we record every user's most 50 most recent posts
+
+
+
+
+
