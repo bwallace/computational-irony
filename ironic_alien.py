@@ -1,3 +1,19 @@
+'''
+Code for harvesting reddit comments and contextualizing info (i.e., the
+thread in which comments appear, and author comment history). This code
+(and the data it collects) is part of our project on irony dection:
+
+ARO grant 528674 
+"Sociolinguistically Informed Natural Lanuage Processing: Automating Irony Detection"
+
+Useful links:
+https://github.com/reddit/reddit/wiki/API
+https://praw.readthedocs.org
+
+Note that we rely on PRAW to be good citizens w.r.t. reddit's API:
+
+'''
+
 import csv 
 import os
 import pdb
@@ -20,23 +36,18 @@ def setup():
     sys.setdefaultencoding("utf8")
     r = praw.Reddit(user_agent=user_agent)
 
-def sample_comments_from_subreddit(subreddit, num_posts=1):
+def sample_comments_from_subreddit(subreddit, num_posts=10):
     if r is None:
         setup()
 
     subreddit = r.get_subreddit(subreddit)
     subreddit_posts = subreddit.get_hot(limit=num_posts)
     for post in subreddit_posts:
-        print "processing post {0}".format(post)
+        print "processing post {0} ...".format(post)
         process_post(post)
+        print "done."
 
-def _sleep(t=5):
-    time_to_sleep = t
-    print "zzzzzz for {0}...".format(t)
-    time.sleep(t)
-    print "i'm up!"
-
-def process_post(post, max_comments=1):
+def process_post(post, max_comments=20):
     '''
     Takes a praw Submission object (which is a post) and:
         1. Dumps the post contents to disk
@@ -57,11 +68,11 @@ def process_post(post, max_comments=1):
 
     count = 0
     top_level_comments = post.comments 
-    for comment in top_level_comments:
+    for comment in top_level_comments[:-1]:
         process_comment(comment)
         count += 1
         second_level_comments = comment.replies
-        for reply_comment in second_level_comments:
+        for reply_comment in second_level_comments[:-1]:
             process_comment(reply_comment)
             count += 1
             if count >= max_comments:
@@ -103,7 +114,7 @@ def process_comment(comment, out_path="data/comments.csv"):
 
 
 
-def get_past_user_comments_str(user, out_path="data/users.csv", n=3):
+def get_past_user_comments_str(user, out_path="data/users.csv", n=50):
     comment_str = [] 
     user_comments = user.get_comments(limit=n)
 
@@ -165,4 +176,10 @@ def _remove_js(soup):
     for script in soup("script"):
         script.extract()
     return soup
+
+def _sleep(t=5):
+    time_to_sleep = t
+    print "zzzzzz for {0}...".format(t)
+    time.sleep(t)
+    print "i'm up!"
 
