@@ -1,8 +1,16 @@
 
 One file (threads.csv) comprises information on the individual threads sampled
 
-    thread-id, subreddit, title, url
+    thread_id, subreddit, title, url
 
 In the 'content' subdirectory, we pull the html from the url (above) and name this "content/<thread-id>.html"
 
-Another file (comments.csv) 
+Another file (comments.csv) contains:
+
+    thread_id, user, comment, comment_url
+
+And, finally, the users file (users.csv) contains previous posts by users
+
+    user, comment, url, subreddit
+
+For 
