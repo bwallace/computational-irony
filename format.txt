@@ -1,13 +1,10 @@
+The 'main' file (comments.csv) contains:
 
-One file (threads.csv) comprises information on the individual threads sampled
+    subreddit, thread_id, thread_title, comment_id, user, comment, comment_url, parent_comment_id, date
 
-    thread_id, subreddit, title, url
+Where parent_comment_id will be an empty string when the entry is a top-level comment (rather than a reply).
 
 In the 'content' subdirectory, we pull the html from the url (above) and name this "content/<thread-id>.html"; we also pull a stripped version ("content/<thread-id>.txt").
-
-Another file (comments.csv) contains:
-
-    thread_id, user, comment, comment_url
 
 And, finally, the users file (users.csv) contains previous posts by users
 
