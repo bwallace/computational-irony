@@ -13,12 +13,13 @@ https://praw.readthedocs.org
 Note that we rely on PRAW to be good citizens w.r.t. reddit's API:
 
 '''
-
+import time
 import csv 
 import os
 import pdb
 import re
 import sys
+import datetime
 
 import praw
 user_agent = "ironist v0 by /u/byron https://github.com/bwallace/computational-irony"
@@ -36,7 +37,7 @@ def setup():
     sys.setdefaultencoding("utf8")
     r = praw.Reddit(user_agent=user_agent)
 
-def sample_comments_from_subreddit(subreddit, num_posts=10):
+def sample_comments_from_subreddit(subreddit, num_posts=50):
     if r is None:
         setup()
 
@@ -44,39 +45,67 @@ def sample_comments_from_subreddit(subreddit, num_posts=10):
     subreddit_posts = subreddit.get_hot(limit=num_posts)
     for post in subreddit_posts:
         print "processing post {0} ...".format(post)
-        process_post(post)
-        print "done."
+        success = process_post(post)
+        if success:
+            print "done."
+        else:
+            print "failed -- moving on..."
 
-def process_post(post, max_comments=20):
+def try_to_get_page(post_url, post_id):
+    success = False
+    if post_url.lower().endswith(".jpg") or post_url.endswith(".gif"):
+        # dont even try for images
+        print "{0} looks like an image -- not downloading".format(post_url)
+        return False
+
+    URLS_to_avoid = ["reddit.com"]
+    if any([s in post_url for s in URLS_to_avoid]):
+        # we don't parse reddit pages; mostly because
+        # we don't want to go over parsing limits.
+        return False
+
+    num_attempts, max_attempts = 0, 3
+    while not success and num_attempts < max_attempts:
+        try:
+            get_page(post_url, post_id)
+            return True
+        except:
+            print "failed to get page {0}... sleeping again".format(post_url)
+            num_attempts += 1
+            _sleep(num_attempts*5)
+    return False
+
+def process_post(post, max_comments=25):
     '''
     Takes a praw Submission object (which is a post) and:
         1. Dumps the post contents to disk
-        2. Grabs up to 100 first- and second- level comments 
+        2. Grabs up to max_comments first- and second- level comments 
             and dumps these to files (as well as the user 
             histories of the posters)
     '''
     # this handles dumping the 'content' to disk
-    success = False
-    while not success:
-        try:
-            success = True
-            get_page(post.url, post.id)
-        except:
-            print "failed to get page {0}... sleeping again".format(post.url)
-            success = False
-            _sleep()
+    success = try_to_get_page(post.url, post.id)
+    if not success:
+        return False
 
     count = 0
     top_level_comments = post.comments 
     for comment in top_level_comments[:-1]:
-        process_comment(comment)
-        count += 1
-        second_level_comments = comment.replies
-        for reply_comment in second_level_comments[:-1]:
-            process_comment(reply_comment)
+        succeeded = process_comment(comment)
+        parent_id = comment.id
+        if succeeded:
             count += 1
-            if count >= max_comments:
-                return False
+            second_level_comments = comment.replies
+            for reply_comment in second_level_comments[:-1]:
+                succeeded_second_level = process_comment(reply_comment, 
+                                                parent_comment_id=parent_id)
+                if succeeded_second_level:
+                    count += 1
+                    if count >= max_comments:
+                        return False
+        else:
+            print "failed to grab a comment; sleeping for a few"
+            _sleep()
         # technically we could get here if the 
         # replies result in exactly max_comments-1
         # comments
@@ -85,51 +114,89 @@ def process_post(post, max_comments=20):
     
     return True
 
-def process_comment(comment, out_path="data/comments.csv"):
+def process_comment(comment, out_path="data/comments.csv", parent_comment_id=""):
     ''' 
     This routine sort of orchestrates data output. 
 
     Specifically, for the given comment object, this method 
     will append
 
-        thread_id, user, comment, url, subreddit 
+    subreddit, thread_id, thread_title, comment_id, user, comment, comment_url, parent_comment_id, date
 
     to the comments.txt file *and* invoke the method to 
     retrieve and dump the commenters previous comments
     '''
     author = comment.author
-
+ 
     comment_out_str = [
-        comment.submission.id, author,
-        comment.body, comment.permalink, comment.subreddit]
+        comment.subreddit, comment.submission.id, comment.submission.title, 
+        comment.id, author, comment.body, comment.permalink, 
+        parent_comment_id, str(datetime.datetime.now())]
 
+    print "retrieving past comments for user {0}...".format(author)
+
+    # now (try to) dump this user's past comments  
+    if author is not None:  
+        try:
+            get_past_user_comments_str(author)
+            print "success!"
+        except:
+            print "failed to get comments for user {0}".format(author)
+            _sleep()
+            return False
+    
+    print "ok -- now dumping comment."
+    # only write out comment if we were successful in getting previous comments
     with open(out_path, 'a') as out_f:
         writer = csv.writer(out_f)
         writer.writerow(comment_out_str)
 
-    print "retrieving past comments for user {0}...".format(author)
-
-    # now dump this user's past comments    
-    get_past_user_comments_str(author)
-
+    return True
 
 
 def get_past_user_comments_str(user, out_path="data/users.csv", n=50):
     comment_str = [] 
-    user_comments = user.get_comments(limit=n)
+    user_comments = list(user.get_comments(limit=n))
+    print "ok! retrieved {0} comments for {1}".format(len(user_comments), user)
 
     ### note that we *append* to the users file!
     with open(out_path, 'a') as f_out:
         writer = csv.writer(f_out)
         for comment in user_comments:
-            ''' user, comment, url, subreddit '''
+            ''' user, comment, subreddit, thread_id, permalink '''
             cur_line = [
-                user, comment.body, comment.subreddit, comment.permalink]
+                user, comment.body, comment.subreddit, 
+                comment.submission.id, comment.submission.title, 
+                comment.submission.url, comment.permalink]
             writer.writerow(cur_line)
-
+            # try to get the page, too
+            success = try_to_get_page(comment.submission.url, comment.submission.id)
+    
+            if not success:
+                # this is OK -- maybe an image, or a page from a domain
+                # we can't handle
+                print "-- failed to write {0} out".format(comment.submission.url)
+              
 
 def get_page(url, thread_id, out_dir="content"):
-    page = urllib2.urlopen(url).read()
+    page = None
+
+    try:
+        page = urllib2.urlopen(url).read()
+    except:
+        pass
+
+    if page is None:
+        hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+           'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+           'Accept-Encoding': 'none',
+           'Accept-Language': 'en-US,en;q=0.8'}
+
+        # if this fails, we just pass the exception forward.
+        req = urllib2.Request(url, headers=hdr)
+        page = urllib2.urlopen(req).read()
+
     # first dump just the page (HTML)
     with open(os.path.join(out_dir, thread_id + ".html"), 'w') as f_out:
         # note that the thread_id can be mapped back to a URL.
@@ -142,11 +209,12 @@ def get_page(url, thread_id, out_dir="content"):
     title, body = "", ""
     if soup is not None:
         soup = _remove_js(soup)
+
         # find the title and body; ignore everything else
         title = _clean_up(soup.head.title.text)
         #body = _clean_up(soup.body.text)
         body = _clean_up(get_visible_text(soup))
-        #pdb.set_trace()
+        
 
     with open(os.path.join(out_dir, thread_id + ".txt"), 'w') as f_out:
         f_out.write("{0}\n\n{1}".format(title, body))
@@ -183,3 +251,8 @@ def _sleep(t=5):
     time.sleep(t)
     print "i'm up!"
 
+
+
+if __name__ == "__main__":
+    subreddit = sys.argv[1]
+    sample_comments_from_subreddit(subreddit)
