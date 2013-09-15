@@ -10,9 +10,10 @@ Useful links:
 https://github.com/reddit/reddit/wiki/API
 https://praw.readthedocs.org
 
-Note that we rely on PRAW to be good citizens w.r.t. reddit's API:
-
+Note that we rely on PRAW to be good citizens w.r.t. reddit's API
+(e.g., by throttling our requests, etc)
 '''
+
 import time
 import csv 
 import os
@@ -22,7 +23,7 @@ import sys
 import datetime
 
 import praw
-user_agent = "ironist v0 by /u/byron https://github.com/bwallace/computational-irony"
+user_agent = "ironist v0.5 by /u/byron https://github.com/bwallace/computational-irony"
 
 import BeautifulSoup as bs
 import urllib2
@@ -37,19 +38,30 @@ def setup():
     sys.setdefaultencoding("utf8")
     r = praw.Reddit(user_agent=user_agent)
 
-def sample_comments_from_subreddit(subreddit, num_posts=50):
+def sample_comments_from_subreddit(subreddit, num_comments=500):
     if r is None:
         setup()
 
     subreddit = r.get_subreddit(subreddit)
-    subreddit_posts = subreddit.get_hot(limit=num_posts)
-    for post in subreddit_posts:
+
+    # the 500 is arbitrary; we just need enough posts
+    # to cover the requested number of comments.
+    subreddit_posts = subreddit.get_hot(limit=500)
+    comments_so_far = 0
+    while comments_so_far < num_comments:
+
+        try:
+            post = subreddit_posts.next()
+        except:
+            break
         print "processing post {0} ...".format(post)
-        success = process_post(post)
+        success, comment_count = process_post(post)
         if success:
-            print "done."
+            print "ok! pulled {0} comments from post".format(comment_count)
         else:
             print "failed -- moving on..."
+        comments_so_far += comment_count
+        print "{0} out of {1} comments processed thus far".format(comments_so_far, num_comments)
 
 def try_to_get_page(post_url, post_id):
     success = False
@@ -75,18 +87,25 @@ def try_to_get_page(post_url, post_id):
             _sleep(num_attempts*5)
     return False
 
-def process_post(post, max_comments=25):
+def process_post(post, max_comments=25, max_replies_per_comment=5):
     '''
     Takes a praw Submission object (which is a post) and:
         1. Dumps the post contents to disk
         2. Grabs up to max_comments first- and second- level comments 
             and dumps these to files (as well as the user 
             histories of the posters)
+
+    Returns a tuple (bool, int) where the boolean indicates
+    a success (insofar as we were at least able to pull the comment
+    and associated external content) and the integer indicates
+    the number of comments we processed in this post.
     '''
     # this handles dumping the 'content' to disk
     success = try_to_get_page(post.url, post.id)
     if not success:
-        return False
+        # we'll only keep comments for whicih we can 
+        # also grab the content
+        return (False, 0)
 
     count = 0
     top_level_comments = post.comments 
@@ -96,13 +115,19 @@ def process_post(post, max_comments=25):
         if succeeded:
             count += 1
             second_level_comments = comment.replies
+            second_level_count = 0
             for reply_comment in second_level_comments[:-1]:
                 succeeded_second_level = process_comment(reply_comment, 
                                                 parent_comment_id=parent_id)
                 if succeeded_second_level:
                     count += 1
+                    second_level_count += 1
                     if count >= max_comments:
-                        return False
+                        return (True, count)
+                    elif second_level_count >= max_replies_per_comment:
+                        # we only sample up to max_replies_per_comment
+                        # per parent at the 'second' level (replies)
+                        break
         else:
             print "failed to grab a comment; sleeping for a few"
             _sleep()
@@ -110,9 +135,9 @@ def process_post(post, max_comments=25):
         # replies result in exactly max_comments-1
         # comments
         if count >= max_comments:
-            return False
+            return (True, count)
     
-    return True
+    return (True, count)
 
 def process_comment(comment, out_path="data/comments.csv", parent_comment_id=""):
     ''' 
@@ -121,7 +146,7 @@ def process_comment(comment, out_path="data/comments.csv", parent_comment_id="")
     Specifically, for the given comment object, this method 
     will append
 
-    subreddit, thread_id, thread_title, comment_id, user, comment, comment_url, parent_comment_id, date
+    subreddit, thread_id, thread_title, comment_id, user, comment, comment_url, parent_comment_id, #downvotes, #upvotes, date
 
     to the comments.txt file *and* invoke the method to 
     retrieve and dump the commenters previous comments
@@ -131,7 +156,7 @@ def process_comment(comment, out_path="data/comments.csv", parent_comment_id="")
     comment_out_str = [
         comment.subreddit, comment.submission.id, comment.submission.title, 
         comment.id, author, comment.body, comment.permalink, 
-        parent_comment_id, str(datetime.datetime.now())]
+        parent_comment_id, str(comment.downs), str(comment.ups), str(datetime.datetime.now())]
 
     print "retrieving past comments for user {0}...".format(author)
 
@@ -153,8 +178,7 @@ def process_comment(comment, out_path="data/comments.csv", parent_comment_id="")
 
     return True
 
-
-def get_past_user_comments_str(user, out_path="data/users.csv", n=50):
+def get_past_user_comments_str(user, out_path="data/users.csv", n=100):
     comment_str = [] 
     user_comments = list(user.get_comments(limit=n))
     print "ok! retrieved {0} comments for {1}".format(len(user_comments), user)
@@ -163,12 +187,18 @@ def get_past_user_comments_str(user, out_path="data/users.csv", n=50):
     with open(out_path, 'a') as f_out:
         writer = csv.writer(f_out)
         for comment in user_comments:
-            ''' user, comment, subreddit, thread_id, permalink '''
+            ''' user, comment, subreddit, thread_id, thread_title, thread_url, #downvotes, #upvotes, date, permalink '''
             cur_line = [
                 user, comment.body, comment.subreddit, 
                 comment.submission.id, comment.submission.title, 
-                comment.submission.url, comment.permalink]
+                comment.submission.url, str(comment.downs), str(comment.ups),
+                str(datetime.datetime.now()), comment.permalink]
             writer.writerow(cur_line)
+
+            # 9/12/13 -- we're not going to try and pull the
+            #       the external content for *every* post
+            #       this is too much.
+            '''
             # try to get the page, too
             success = try_to_get_page(comment.submission.url, comment.submission.id)
     
@@ -176,7 +206,7 @@ def get_past_user_comments_str(user, out_path="data/users.csv", n=50):
                 # this is OK -- maybe an image, or a page from a domain
                 # we can't handle
                 print "-- failed to write {0} out".format(comment.submission.url)
-              
+            '''
 
 def get_page(url, thread_id, out_dir="content"):
     page = None

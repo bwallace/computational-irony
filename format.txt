@@ -1,6 +1,6 @@
 The 'main' file (comments.csv) contains:
 
-    subreddit, thread_id, thread_title, comment_id, user, comment, comment_url, parent_comment_id, date
+    subreddit, thread_id, thread_title, comment_id, user, comment, comment_url, parent_comment_id, #downvotes, #upvotes, date
 
 Where parent_comment_id will be an empty string when the entry is a top-level comment (rather than a reply).
 
@@ -8,7 +8,7 @@ In the 'content' subdirectory, we pull the html from the url (above) and name th
 
 And, finally, the users file (users.csv) contains previous posts by users
 
-    user, comment, url, subreddit
+    user, comment, subreddit, thread_id, thread_title, thread_url, #downvotes, #upvotes, permalink
 
 Specifically, we record every user's most 50 most recent posts
 
