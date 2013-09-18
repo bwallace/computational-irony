@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 '''
 :id: arbitrary identifying number.
 :reddit_id: unique identifying string from reddit
@@ -13,7 +14,7 @@ from django.contrib.auth.models import User
 :date: date this comment was scraped (*not* when posted)
 :permalink: url to comment
 '''
-class comment(models.Model):
+class Comment(models.Model):
     # identifier from reddit
     reddit_id = models.CharField(max_length=50)
     subreddit = models.CharField(max_length=200)
@@ -37,10 +38,11 @@ segments).
     produces the original comment.
 :text: finally, the actual body of the segment (string).
 '''
-class comment_segment(models.Model):
-    comment = models.ForeignKey(comment)
+class CommentSegment(models.Model):
+    comment = models.ForeignKey(Comment)
     segment_index = models.IntegerField()
     text = models.CharField(max_length=10000) # may be long...
+
 
 '''
 :id: unique identifier for this label (*not* from reddit)
@@ -50,8 +52,8 @@ class comment_segment(models.Model):
 :used_context: boolean indicating whether 'context' was used to make this judgement.
 :confidence: score on a Likert scale expressing subjective confidence in the assigned label.
 '''
-class label(models.Model):
-    segment = models.ForeignKey(comment_segment)
+class Label(models.Model):
+    segment = models.ForeignKey(CommentSegment)
     labeler = models.ForeignKey(User)
     label = models.IntegerField() # -1, 0, 1
     used_context = models.BooleanField(default=False)
@@ -72,7 +74,7 @@ for these.
 :upvotes: ditto, upvotes
 :permalink: permalink to the comment
 '''
-class past_user_comment(models.Model):
+class PastUserComment(models.Model):
     redditor = models.CharField(max_length=100)
     comment_text = models.CharField(max_length=10000)
     subreddit = models.CharField(max_length=200)
@@ -83,4 +85,8 @@ class past_user_comment(models.Model):
     downvotes = models.IntegerField()
     date = models.DateField() # date we *scraped* it, not the date it was posted!
     permalink = models.CharField(max_length=500)
+
+
+
+
 

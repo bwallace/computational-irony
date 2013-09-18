@@ -1,3 +1,5 @@
+### http://www.michelepasin.org/blog/2011/01/14/setting-up-django-registration/
+
 # Django settings for annotatr project.
 
 DEBUG = True
@@ -122,6 +124,8 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'irony',
+    'registration',
+    'django.contrib.humanize',
     # Uncomment the next line to enable the admin:
     # 'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
@@ -158,3 +162,14 @@ LOGGING = {
         },
     }
 }
+
+#
+# settings for registration app.
+#
+ACCOUNT_ACTIVATION_DAYS=7
+EMAIL_HOST = 'localhost'
+EMAIL_PORT = 1025
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = 'testing@example.com'

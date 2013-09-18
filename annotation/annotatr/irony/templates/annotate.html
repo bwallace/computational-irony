@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<div id="main" class="span9">
+    <div class="content">
+        {% for segment in segments %}
+            <span id="s{{ forloop.counter0 }}">{{segment.text}}</span>
+        {% endfor %}
+        <br/><br/>
+        
+    </div>
+
+</div>
+
+<script>
+// http://stackoverflow.com/questions/5103691/jquery-onclick-change-background-color
+jQuery("#s1").css({'border':'2px dotted', 'padding-bottom':'1px'});
+jQuery("#s0").css({'background-color':'#FFFF00'});
+</script>
+
+<br/><br/>
+ <div id="buttons" class="span9">
+     <a href="#" id="context_button" class="myButton">I need some context</a>
+     
+     <a href="#" id="ironic" class="myButton">ironic</a> 
+     <a href="#" id="ironic" class="myButton"><b><i>un</i></b>ironic</a> 
+
+  </div>
+
+{% endblock %}
