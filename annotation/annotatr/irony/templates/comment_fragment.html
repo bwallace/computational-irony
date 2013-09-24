@@ -4,9 +4,20 @@
            <span id="sid{{segment.id}}">{{segment.text|linebreaksbr}}</span>
            {% if forloop.counter0 == 0 %}
                 <script>
-                jQuery("#sid{{segment.id}}").css({'border':'2px dotted', 'padding-bottom':'1px'});
+                  // 'activate' the first segment
+                  var firstSpan = $("#comment-div").find("span")[0];
+                  _activate_span(firstSpan)
                 </script>
            {% endif %}
+
+           <script>
+             // if the user clicks this sentence (span), then 'activate'
+             // it
+             $("#sid{{segment.id}}").live('click', function() {
+                var thisSpan = $("#comment-div").find("span")[{{forloop.counter0}}];
+                _activate_span(thisSpan);
+             });
+           </script>
         {% endfor %}
         <br/><br/>
     </div>

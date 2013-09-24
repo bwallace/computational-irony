@@ -36,9 +36,15 @@ def annotate_segments(request):
     ironic_segment_ids = request.POST.getlist('ironic_segments[]')
     # we are storing these as s{segment_id}; so just remove the 
     # prepended s.
-    ironic_segment_ids = [int(s_id.split("s")[1]) for s_id in ironic_segment_ids]
-    # get and label these segments
+    pdb.set_trace()
+    ironic_segment_ids = [
+        int(s_id.split("sid")[1]) for s_id in ironic_segment_ids]
+    # @TODO get and label these segments
 
+
+    '''
+    # probably do not want to do this here; instead,
+    #   handle getting the next comment on the client side
 
     ### TMP TMP TMP
     comment_ = Comment.objects.get(pk=1)
@@ -47,6 +53,7 @@ def annotate_segments(request):
 
     return render_to_response("comment_fragment.html", 
                                 {"comment":comment_, "segments":segments})
+    '''
 
 def login(request):
     pass

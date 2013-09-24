@@ -20,18 +20,19 @@
 
 <div id="buttons1" class="span9">
      <div class="button_group">
-     <a href="#" id="ironic" class="ironyBtn1">ironic</a> 
-     <a href="#" id="unironic" class="ironyBtn1"><b><i>un</i></b>ironic</a> 
+         <a href="#" id="ironic" class="ironyBtn1">ironic</a> 
+         <a href="#" id="unironic" class="ironyBtn1"><b><i>not</i></b> ironic</a> 
+         <a href="#" id="toggle_all" class="ironyBtn1">mark all as ironic</a> 
+         <br/><br/>
+         <a href="#" id="context_button" class="ironyBtn1">hm ... I need some context</a>
      </div>
-
-     <a href="#" id="toggle_all" class="ironyBtn1">mark all as ironic</a> 
 </div>
 
-<br/>
+<br/><br/><br/>
 <div id="buttons2" class="span9">
-     <a href="#" id="context_button" class="ironyBtn2">I need some context</a>
+    
      <div class="button_group_prev_next">
-     <a href="#" id="previous_comment" class="ironyBtn2">&larr; previous comment</a>
+     <!-- <a href="#" id="previous_comment" class="ironyBtn2">&larr; previous comment</a> -->
      <a href="#" id="next_button" class="ironyBtn2">OK! next comment &rarr;</a>
      </div>
 </div>
@@ -40,12 +41,54 @@
 {% csrf_token %}
 <script>    
     var toggledOn = false;
+    var ironicBgColor = "rgb(255, 255, 0)";
+    var unironicBgColor = "rgba(0, 0, 0, 0)";
 
     function _is_active_span(span){
         // span is assumed to be a <span> element
         // we will just assume if it does not have a 
         // border, then it is inactive.
         return !(span.style['border']=="");
+    }
+
+    function _is_ironic_span(span){
+        return span.style["background-color"] == ironicBgColor;
+    }
+
+    function _get_ironic_spans(){
+        return $('span').filter(function() { 
+            return $(this).css("backgroundColor") == ironicBgColor; 
+        });
+    }
+
+    function _activate_span(span){
+        $("#comment-div").find("span").css("border", ""); // clear all
+        span.style['border']='2px dotted'; // activate this guy
+        //'padding-bottom':'1px'}); // activate this guy
+    }
+
+    function _get_active_span(){
+        all_spans = $("#comment-div").find("span");
+        for (var span_i = 0; span_i < all_spans.length; span_i++){
+            cur_span = all_spans[span_i];
+            if (_is_active_span(cur_span)){
+               return [cur_span, span_i]
+            }
+        }     
+    }
+
+    function _mark_span_unironic(span_id){
+        //$(span_id).removeAttr('style');
+        $(span_id).css("background-color", unironicBgColor);
+    }
+
+    function _mark_span_ironic(span_id){
+        $(span_id).css("background-color", ironicBgColor);
+    }
+
+    // syntactic high-fructose corn syrup.
+    function _get_active_span_id(){
+        return _get_active_span()[0];
     }
 
     // this is to deal with csrf stuff, which is meant to prevent
@@ -76,34 +119,46 @@
     });
 
     $("#toggle_all").click(function() {
-        
-        bgColor = "#FFFF00"
+        var bgColor = ironicBgColor;
         if (toggledOn){
             // then we want to clear it.
-            bgColor = "white";
+            bgColor = unironicBgColor;
             toggledOn = false;
             $("#toggle_all").text("mark all as ironic");
         } else {
             toggledOn = true;
             $("#toggle_all").text("clear annotations");
         }
-
         $("#comment-div").find("span").css({'background-color':bgColor});
     }); 
 
-    $("#ironic").click(function() {
-        all_spans = $('span');
-        for (var span_i = 0; span_i < all_spans.length; span_i++){
-            cur_span = all_spans[span_i];
-            if _is_active_span(cur_span){
-               cur_span.css({'background-color':"#FFFF00"}) 
-            }
+    function _advance_active_span(){
+        var active_span = _get_active_span();
+        var span_i = active_span[1];
+        next_span_i = span_i + 1;
+        if (next_span_i == $("#comment-div").find("span").length){
+            next_span_i = 0; // loop around to start
         }
+        _activate_span(all_spans[next_span_i]); 
+    }
+
+    $("#ironic").click(function() {
+        var active_span_id = _get_active_span_id(); // [span, span_index]
+        _mark_span_ironic(active_span_id);
+        _advance_active_span();
+    }); 
+
+
+    $("#unironic").click(function() {
+        var active_span_id = _get_active_span_id(); // [span, span_index]
+        _mark_span_unironic(active_span_id);
+        _advance_active_span();
     }); 
 
     $("#next_button").click(function() {
         /** this is where we actually do the annotation **/
-        highlighted_spans = $('span[style*=background-color]'); // thanks jens!
+        highlighted_spans = _get_ironic_spans()
+
         var highlighted_segment_ids = new Array(highlighted_spans.length);
         for (var span_i = 0; span_i < highlighted_spans.length; span_i++) {
             highlighted_segment_ids[span_i] = highlighted_spans[span_i].id
