@@ -2,30 +2,135 @@
 {% block content %}
 
 
-<div id="main" class="span9">
-    <div class="content">
-        {% for segment in segments %}
-            <span id="s{{ forloop.counter0 }}">{{segment.text}}</span>
-        {% endfor %}
-        <br/><br/>
-        
-    </div>
-
-</div>
-
 <script>
-// http://stackoverflow.com/questions/5103691/jquery-onclick-change-background-color
-jQuery("#s1").css({'border':'2px dotted', 'padding-bottom':'1px'});
-jQuery("#s0").css({'background-color':'#FFFF00'});
+//jQuery("#comment-div").load("comment_fragment.html")
+//jQuery("#sid").css({'border':'2px dotted', 'padding-bottom':'1px'});
+//jQuery("#s0").css({'background-color':'#FFFF00'});
+
+// need some javascript that maps button clicks to 
+// tagging somehow. 
+// see: http://stackoverflow.com/questions/5103691/jquery-onclick-change-background-color
 </script>
 
-<br/><br/>
- <div id="buttons" class="span9">
-     <a href="#" id="context_button" class="myButton">I need some context</a>
-     
-     <a href="#" id="ironic" class="myButton">ironic</a> 
-     <a href="#" id="ironic" class="myButton"><b><i>un</i></b>ironic</a> 
+<div id="comment-div" class="span9">
+    <!--  we load this up dynamically -->
+</div>
 
-  </div>
+<br/>
 
+<div id="buttons1" class="span9">
+     <div class="button_group">
+     <a href="#" id="ironic" class="ironyBtn1">ironic</a> 
+     <a href="#" id="unironic" class="ironyBtn1"><b><i>un</i></b>ironic</a> 
+     </div>
+
+     <a href="#" id="toggle_all" class="ironyBtn1">mark all as ironic</a> 
+</div>
+
+<br/>
+<div id="buttons2" class="span9">
+     <a href="#" id="context_button" class="ironyBtn2">I need some context</a>
+     <div class="button_group_prev_next">
+     <a href="#" id="previous_comment" class="ironyBtn2">&larr; previous comment</a>
+     <a href="#" id="next_button" class="ironyBtn2">OK! next comment &rarr;</a>
+     </div>
+</div>
+
+
+{% csrf_token %}
+<script>    
+    var toggledOn = false;
+
+    function _is_active_span(span){
+        // span is assumed to be a <span> element
+        // we will just assume if it does not have a 
+        // border, then it is inactive.
+        return !(span.style['border']=="");
+    }
+
+    // this is to deal with csrf stuff, which is meant to prevent
+    // cross browser attacks. in all honesty, I do not fully understand
+    // how this works (this function was suggested in a stackoverflow post
+    // here: http://stackoverflow.com/questions/6194550/csrf-with-jquery-and-post-in-django-1-3)
+    // if this is removed, you will get 403 errors from the server.
+    $('html').ajaxSend(function(event, xhr, settings) {
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie != '') {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = jQuery.trim(cookies[i]);
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+            // Only send the token to relative URLs i.e. locally.
+            xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+        }
+    });
+
+    $("#toggle_all").click(function() {
+        
+        bgColor = "#FFFF00"
+        if (toggledOn){
+            // then we want to clear it.
+            bgColor = "white";
+            toggledOn = false;
+            $("#toggle_all").text("mark all as ironic");
+        } else {
+            toggledOn = true;
+            $("#toggle_all").text("clear annotations");
+        }
+
+        $("#comment-div").find("span").css({'background-color':bgColor});
+    }); 
+
+    $("#ironic").click(function() {
+        all_spans = $('span');
+        for (var span_i = 0; span_i < all_spans.length; span_i++){
+            cur_span = all_spans[span_i];
+            if _is_active_span(cur_span){
+               cur_span.css({'background-color':"#FFFF00"}) 
+            }
+        }
+    }); 
+
+    $("#next_button").click(function() {
+        /** this is where we actually do the annotation **/
+        highlighted_spans = $('span[style*=background-color]'); // thanks jens!
+        var highlighted_segment_ids = new Array(highlighted_spans.length);
+        for (var span_i = 0; span_i < highlighted_spans.length; span_i++) {
+            highlighted_segment_ids[span_i] = highlighted_spans[span_i].id
+        }
+
+        $.ajax({
+            type: "POST",
+            url:"/annotate_segments/",
+            data: {
+                'ironic_segments': highlighted_segment_ids,
+            },
+            success: function(){
+              // move selection ahead
+              alert('success?')
+
+            },
+            error: function(){
+                alert("error");
+            }
+        });
+    });
+
+    jQuery(document).ready(function() {
+        jQuery("#comment-div").load("/get_comment_segments/{{comment.id}}");
+        //var toggledOn = false;
+        //alert(toggledOn);
+    });
+
+</script>
 {% endblock %}

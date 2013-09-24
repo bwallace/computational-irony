@@ -1,0 +1,12 @@
+    <div class="content">
+        {% for segment in segments %}
+            <!-- <span id="s{{ forloop.counter0 }}" >{{segment.text|linebreaksbr}}</span> -->
+           <span id="sid{{segment.id}}">{{segment.text|linebreaksbr}}</span>
+           {% if forloop.counter0 == 0 %}
+                <script>
+                jQuery("#sid{{segment.id}}").css({'border':'2px dotted', 'padding-bottom':'1px'});
+                </script>
+           {% endif %}
+        {% endfor %}
+        <br/><br/>
+    </div>

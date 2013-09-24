@@ -147,6 +147,7 @@ a:hover {
 }
 
 
+
 .span1 {
   width: 60px;
 }
@@ -209,20 +210,26 @@ a:hover {
   width: 620px;
 }
 .span9 {
-  width: 700px;
+    width:700px;
+    float:none;
+    margin-left: auto;
+    margin-right: auto;
 }
+
 .span10 {
   width: 780px;
 }
 
 #main {
- margin:0 auto;
- float:none;
+  float:none;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #buttons {
-  margin:0 auto;
   float:none;
+  margin-left: auto;
+  margin-right: auto;
   text-align: center;
 }
 
@@ -233,9 +240,22 @@ a:hover {
 }
 
 #context_button {
-  margin-right: 80px;
+  margin-right: 0px;
+  float:left;
 }
-.myButton {
+
+.button_group {
+  margin-right: 20px;
+  float: left;
+}
+
+.button_group_prev_next{
+  float: right;
+}
+
+
+
+.ironyBtn1, .ironyBtn2 {
     
     -moz-box-shadow: 3px 4px 0px 0px #284470;
     -webkit-box-shadow: 3px 4px 0px 0px #284470;
@@ -260,6 +280,12 @@ a:hover {
     text-shadow:0px 1px 0px #263666;
     
 }
+
+.ironyBtn2 {
+  background-color:green;
+  padding:5px 10px;
+}
+
 .myButton:hover {
     
     background-color:#516ca3;
