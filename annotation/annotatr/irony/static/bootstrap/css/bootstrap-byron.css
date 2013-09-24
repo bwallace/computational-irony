@@ -249,6 +249,12 @@ a:hover {
   float: left;
 }
 
+.button_group_right {
+  margin-left: 20px;
+  float: right;
+}
+
+
 .button_group_prev_next{
   float: right;
 }
