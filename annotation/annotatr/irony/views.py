@@ -8,8 +8,9 @@ from django.views.generic import View
 from django.views.generic.base import TemplateView
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib import messages
 
-from irony.models import Comment, CommentSegment, Label
+from irony.models import Comment, CommentSegment, Label, User
 
 def index(request):
     return HttpResponse("Hello, ironic world.")
@@ -19,41 +20,66 @@ def _lines_to_breaks(segments):
         segment.text = segment.text.replace("\n", "<br/>")
     return segments
 
-#@permission_required()
+def _get_comment_segments(comment_):
+    return CommentSegment.objects.filter(comment=comment_).order_by('segment_index')
+
 def show_comment(request, comment_id):
     comment_ = Comment.objects.get(pk=comment_id)
-    #segments = CommentSegment.objects.filter(comment=comment_).order_by('segment_index')
-    #return render_to_response("annotate.html", {"comment":comment_, "segments":segments})
     return render_to_response("annotate.html", {"comment":comment_})
 
-#def next_comment_segments()
+def get_next_comment_fragment(request):
+    user = request.user
+    # get the
+    #comments = Comment.objects.
+    #label.Segment.
+    already_labeled_comments = Label.objects.filter(labeler=user)
+    unlabeled_comments = Comment.objects.exclude(
+        id__in=[comment.id for comment in already_labeled_comments])
+    selected_comment = unlabeled_comments[0]
+    return get_comment_segments(request, selected_comment.id)
+
 def get_comment_segments(request, comment_id):
     comment_ = Comment.objects.get(pk=comment_id)
-    segments = CommentSegment.objects.filter(comment=comment_).order_by('segment_index')
-    return render_to_response("comment_fragment.html", {"segments":segments})
+    segments = _get_comment_segments(comment_)
+    return render_to_response("comment_fragment.html", 
+            {"segments":segments, "comment_id":comment_.id})
+
 
 def annotate_segments(request):
     ironic_segment_ids = request.POST.getlist('ironic_segments[]')
     # we are storing these as s{segment_id}; so just remove the 
     # prepended s.
-    pdb.set_trace()
     ironic_segment_ids = [
         int(s_id.split("sid")[1]) for s_id in ironic_segment_ids]
-    # @TODO get and label these segments
+   
+    # @TODO get confidence!
 
+    comment_id = request.POST.get("comment_id")
+    # get all segments from the associated comment; the assumption
+    # is that any *not* labeled as ironic were labeled as sincere.
+    comment = Comment.objects.get(pk=comment_id)
+    all_comment_segments = _get_comment_segments(comment)
+    for segment in all_comment_segments:
+        segment_lbl = -1
+        if segment.id in ironic_segment_ids:
+            segment_lbl = 1
+        # push label to db
+        
+        # @TODO confidence!
+        lbl_obj = Label.objects.create(
+            labeler=request.user, segment=segment, label=segment_lbl, 
+            used_context=False, confidence=1, comment=comment)
+        lbl_obj.save()
+        #is_ironic = lambda x : "ironic" if x > 0 else "sincere"
+        #print "labeled segment '{0}' as {1}".format(
+        #            segment.text, is_ironic(segment_lbl))
 
-    '''
-    # probably do not want to do this here; instead,
-    #   handle getting the next comment on the client side
+    # I'm actually not really sure if this is the correct thing
+    # to do here, but it seems reasonable?
+    messages.success(request, "success message")
+    return HttpResponse(messages)
+    
 
-    ### TMP TMP TMP
-    comment_ = Comment.objects.get(pk=1)
-    segments = CommentSegment.objects.filter(comment=comment_).order_by('segment_index')
-    ## END TMP
-
-    return render_to_response("comment_fragment.html", 
-                                {"comment":comment_, "segments":segments})
-    '''
 
 def login(request):
     pass

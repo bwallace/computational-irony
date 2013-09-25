@@ -2,16 +2,6 @@
 {% block content %}
 
 
-<script>
-//jQuery("#comment-div").load("comment_fragment.html")
-//jQuery("#sid").css({'border':'2px dotted', 'padding-bottom':'1px'});
-//jQuery("#s0").css({'background-color':'#FFFF00'});
-
-// need some javascript that maps button clicks to 
-// tagging somehow. 
-// see: http://stackoverflow.com/questions/5103691/jquery-onclick-change-background-color
-</script>
-
 <div id="comment-div" class="span9">
     <!--  we load this up dynamically -->
 </div>
@@ -38,7 +28,7 @@
 </div>
 
 
-{% csrf_token %}
+
 <script>    
     var toggledOn = false;
     var ironicBgColor = "rgb(255, 255, 0)";
@@ -91,32 +81,6 @@
         return _get_active_span()[0];
     }
 
-    // this is to deal with csrf stuff, which is meant to prevent
-    // cross browser attacks. in all honesty, I do not fully understand
-    // how this works (this function was suggested in a stackoverflow post
-    // here: http://stackoverflow.com/questions/6194550/csrf-with-jquery-and-post-in-django-1-3)
-    // if this is removed, you will get 403 errors from the server.
-    $('html').ajaxSend(function(event, xhr, settings) {
-        function getCookie(name) {
-            var cookieValue = null;
-            if (document.cookie && document.cookie != '') {
-                var cookies = document.cookie.split(';');
-                for (var i = 0; i < cookies.length; i++) {
-                    var cookie = jQuery.trim(cookies[i]);
-                    // Does this cookie string begin with the name we want?
-                    if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-        if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
-            // Only send the token to relative URLs i.e. locally.
-            xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
-        }
-    });
 
     $("#toggle_all").click(function() {
         var bgColor = ironicBgColor;
@@ -169,20 +133,21 @@
             url:"/annotate_segments/",
             data: {
                 'ironic_segments': highlighted_segment_ids,
+                'comment_id': comment_id
             },
             success: function(){
-              // move selection ahead
-              alert('success?')
-
+                // load next comment....
+                //alert('success?')
+                $("#comment-div").load("/get_next_comment_fragment/");
             },
             error: function(){
-                alert("error");
+                alert("oh, dear. something went wrong. try again?");
             }
         });
     });
 
-    jQuery(document).ready(function() {
-        jQuery("#comment-div").load("/get_comment_segments/{{comment.id}}");
+    $(document).ready(function() {
+        $("#comment-div").load("/get_comment_segments/{{comment.id}}");
         //var toggledOn = false;
         //alert(toggledOn);
     });

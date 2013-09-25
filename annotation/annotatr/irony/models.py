@@ -54,11 +54,12 @@ class CommentSegment(models.Model):
 '''
 class Label(models.Model):
     segment = models.ForeignKey(CommentSegment)
+    comment = models.ForeignKey(Comment)
     labeler = models.ForeignKey(User)
     label = models.IntegerField() # -1, 0, 1
     used_context = models.BooleanField(default=False)
     confidence = models.PositiveIntegerField() # 1,2,3
-
+    time_given = models.DateField(auto_now_add=True)
 
 '''
 these are comments used for context; we do not seek labels

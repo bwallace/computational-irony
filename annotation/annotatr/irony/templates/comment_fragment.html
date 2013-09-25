@@ -1,4 +1,9 @@
     <div class="content">
+        <script>
+          // note the corresponding comment id.
+          var comment_id = {{comment_id}};
+        </script>
+
         {% for segment in segments %}
             <!-- <span id="s{{ forloop.counter0 }}" >{{segment.text|linebreaksbr}}</span> -->
            <span id="sid{{segment.id}}">{{segment.text|linebreaksbr}}</span>
