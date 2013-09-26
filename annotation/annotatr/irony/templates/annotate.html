@@ -6,6 +6,7 @@
     <!--  we load this up dynamically -->
 </div>
 
+
 <br/>
 
 <div id="buttons1" class="span9">
@@ -13,26 +14,56 @@
          <a href="#" id="ironic" class="ironyBtn1">ironic</a> 
          <a href="#" id="unironic" class="ironyBtn1"><b><i>not</i></b> ironic</a> 
          <a href="#" id="toggle_all" class="ironyBtn1">mark all as ironic</a> 
-         <br/><br/>
-         <a href="#" id="context_button" class="ironyBtn1">hm ... I need some context</a>
+         <br/>
+         <!-- <a href="#" id="context_button" class="ironyBtn1">hm ... I need some context ...</a> -->
+       
+         <br/>
+         <a href="#" id="show_page" target="_blank" class="ironyBtn1"><b>webpage</b> <img src="{{ STATIC_URL }}/static/images/external-link.png"/></a>
+         <a href="#" id="show_thread" target="_blank" class="ironyBtn1">reddit <b>thread</b> <img src="{{ STATIC_URL }}/static/images/external-link.png"/></a>
+
      </div>
 </div>
 
-<br/><br/><br/>
+
 <div id="buttons2" class="span9">
     
-     <div class="button_group_prev_next">
-     <!-- <a href="#" id="previous_comment" class="ironyBtn2">&larr; previous comment</a> -->
+    <div class="button_group_prev_next">
+        <div class="btn-group" data-toggle="buttons">
+            <label class="btn btn-primary">
+            <input type="radio" name="conf" id="conf_low"> low
+            </label>
+            <label class="btn btn-primary">
+            <input type="radio" name="conf" id="conf_med"> medium
+            </label>
+            <label class="btn btn-primary">
+            <input type="radio" name="conf" id="conf_high"> high
+            </label>
+        </div>
+     
      <a href="#" id="next_button" class="ironyBtn2">OK! next comment &rarr;</a>
      </div>
 </div>
 
 
 
-<script>    
+<script>  
+    // mark the dialog as such
+    $(function() {
+      $( "#dialog" ).dialog(
+            { autoOpen: false,
+                height:200,
+                width:600
+            });
+    });
+
     var toggledOn = false;
     var ironicBgColor = "rgb(255, 255, 0)";
     var unironicBgColor = "rgba(0, 0, 0, 0)";
+
+    function _get_conf(){
+        var conf_id = $("input:radio[name='conf']:checked")[0].id;
+        return conf_id;
+    }
 
     function _is_active_span(span){
         // span is assumed to be a <span> element
@@ -42,12 +73,12 @@
     }
 
     function _is_ironic_span(span){
-        return span.style["background-color"] == ironicBgColor;
+        return span.style['background-color'] == ironicBgColor;
     }
 
     function _get_ironic_spans(){
-        return $('span').filter(function() { 
-            return $(this).css("backgroundColor") == ironicBgColor; 
+        return $("span").filter(function() { 
+            return $(this).css('backgroundColor') == ironicBgColor; 
         });
     }
 
@@ -128,12 +159,18 @@
             highlighted_segment_ids[span_i] = highlighted_spans[span_i].id
         }
 
+        var conf_id = _get_conf();
+
         $.ajax({
             type: "POST",
             url:"/annotate_segments/",
             data: {
                 'ironic_segments': highlighted_segment_ids,
-                'comment_id': comment_id
+                'comment_id': comment_id,
+                'viewed_webpage':viewed_webpage,
+                'viewed_thread':viewed_thread,
+                'confidence':conf_id,
+                'forced_decision':false,
             },
             success: function(){
                 // load next comment....
@@ -147,10 +184,61 @@
     });
 
     $(document).ready(function() {
+        // initial load
         $("#comment-div").load("/get_comment_segments/{{comment.id}}");
-        //var toggledOn = false;
-        //alert(toggledOn);
     });
 
 </script>
+
+<div id="dialog" title="We get it. This is confusing.">
+    <p>But, before you contextualize the comment, <b>if you had to make a decision right now, would you say that this comment contains any irony?</b></p>
+    <br/>
+    
+    <div class="button_group_prev_next">
+        <label class="btn btn-primary">
+        <input type="radio" name="conf-pre" id="conf_low_pre"> low
+        </label>
+        <label class="btn btn-primary">
+        <input type="radio" name="conf-pre" id="conf_med_pre"> medium
+        </label>
+
+        <a href="#" id="contains-irony-pre" class="ironyBtnPre">yes</a> 
+        <a href="#" id="unironic-pre" class="ironyBtnPre">no</a> 
+     </div>
+</div>
+
+<script>
+    $("#contains-irony-pre").click(function() {
+        _open_link_and_close_dialog();
+    });
+
+    $("#unironic-pre").click(function() {
+        //alert(external_link);
+        _open_link_and_close_dialog();
+    });
+
+
+    function _open_link_and_close_dialog(){
+        window.open(
+            external_link.href,
+            '_blank');
+
+        if (dialog_for_webpage){
+            //alert("viewed webpage!");
+            viewed_webpage = true;
+        } else {
+            //alert("viewed thread!");
+            viewed_thread = true;
+        }
+        dialog_for_webpage = null;
+
+        // close the dialog
+        $("#dialog").dialog("close");
+    }
+
+
+
+</script>
+
+</div>
 {% endblock %}

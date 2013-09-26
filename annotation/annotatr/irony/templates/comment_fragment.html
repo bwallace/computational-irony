@@ -1,8 +1,4 @@
     <div class="content">
-        <script>
-          // note the corresponding comment id.
-          var comment_id = {{comment_id}};
-        </script>
 
         {% for segment in segments %}
             <!-- <span id="s{{ forloop.counter0 }}" >{{segment.text|linebreaksbr}}</span> -->
@@ -24,5 +20,59 @@
              });
            </script>
         {% endfor %}
+        
+        <script>
+          /** resetting vars, etc., for this comment **/
+          
+          $("#show_page").unbind();
+
+          // record the corresponding comment id.
+          var permalink = "{{comment.permalink}}";
+        
+          var comment_id = {{comment_id}};
+
+          // set up links
+          $('#show_page').attr("href", "{{comment.thread_url}}")
+          $('#show_thread').attr("href", "{{comment.permalink}}")
+
+          // indicators regarding whether the user
+          // opted to use the contextual clues
+          var viewed_webpage = false;
+          var viewed_thread = false;
+          // true if the dialog was popped up because the
+          // user clicked on the show page button; false 
+          // if the user clicked on the 'thread' button.
+          var dialog_for_webpage = null; 
+          var external_link = null;
+
+          $("#show_page").unbind();
+          $("#show_page").click(function(e) {
+            external_link = this;
+            e.preventDefault();
+            //alert(viewed_webpage);
+            //viewed_webpage = true;
+            dialog_for_webpage = true;
+            //alert(viewed_webpage);
+            $("#dialog").dialog("open");
+          });
+
+          $("#show_thread").unbind();
+          $("#show_thread").click(function(e) {
+            external_link = this;
+            e.preventDefault();
+            dialog_for_webpage = false;
+            $("#dialog").dialog("open");
+          });
+
+
+          // select 'low' confidence
+          $('#conf_low').prop('checked',true);
+
+          // and also on the `pre' form
+          $('#conf_low_pre').prop('checked',true);
+
+          //$("#pre_context_comment").html($("#comment-div").html());
+        </script>
+
         <br/><br/>
     </div>

@@ -6,7 +6,9 @@ from django.contrib.auth.models import User
 :id: arbitrary identifying number.
 :reddit_id: unique identifying string from reddit
 :subreddit: string capturing the subreddit to which this comment belongs
-:thread: identifies the thread (i.e., post); again a unique string from reddit
+:thread_title: title of the thread (string)
+:thread_url: url (string) pointing to (external) webpage associated with the thread
+:thread_id: identifies the thread (i.e., post); again a unique string from reddit
 :redditor: unique string ID identifying the commentor (author)
 :parent_comment_id: this will be NULL for all top-level comments. for comments that are replies, this will be a comment identifier.
 :upvotes: number of upvotes this comment received
@@ -19,6 +21,7 @@ class Comment(models.Model):
     reddit_id = models.CharField(max_length=50)
     subreddit = models.CharField(max_length=200)
     thread_title = models.CharField(max_length=200)
+    thread_url = models.CharField(max_length=500)
     thread_id = models.CharField(max_length=50) # again, from reddit
     redditor = models.CharField(max_length=100)
     parent_comment_id = models.CharField(max_length=50, null=True)
@@ -53,13 +56,22 @@ class CommentSegment(models.Model):
 :confidence: score on a Likert scale expressing subjective confidence in the assigned label.
 '''
 class Label(models.Model):
-    segment = models.ForeignKey(CommentSegment)
+    # segment will be NULL if this is a forced, comment-level 
+    # decision requested when the user asked for context
+    segment = models.ForeignKey(CommentSegment, default=None)
     comment = models.ForeignKey(Comment)
     labeler = models.ForeignKey(User)
-    label = models.IntegerField() # -1, 0, 1
-    used_context = models.BooleanField(default=False)
-    confidence = models.PositiveIntegerField() # 1,2,3
+    label = models.IntegerField() # -1, 1
+    #used_context = models.BooleanField(default=False)
+    confidence = models.PositiveIntegerField() # 1,2,3 (low, med, high)
     time_given = models.DateField(auto_now_add=True)
+    viewed_thread = models.BooleanField(default=False)
+    viewed_page = models.BooleanField(default=False)
+    # is this a label requested when the annotator
+    # asked for context? if so, this will be a *comment*
+    # level label, not a segment level one -- so segment
+    # will be empty
+    forced_decision = models.BooleanField(default=False)
 
 '''
 these are comments used for context; we do not seek labels
